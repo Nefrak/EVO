@@ -1,26 +1,3 @@
-GA: 
-  - population_size: 1
-  - mutation: 0
-  - crossing: 0
----
-Bratislava:
-  - Kosice
-  - Trnava
-  - Moldava
-  - Trencin
-
-Kosice:
-  - Bratislava
-  - Trnava
-
-Trnava:
-  - Bratislava
-  - Kosice
-  - Trencin
-
-Moldava:
-  - Bratislava
-
-Trencin:
-  - Bratislava
-  - Trnava
+Graph: 
+    node_count: 4
+    edges: [[0,1],[0,2],[1,2],[2,3]]
