@@ -15,12 +15,15 @@ import graphs
 # problem constants:
 HARD_CONSTRAINT_PENALTY = 10  # the penalty factor for a hard-constraint violation
 FILE_PATH = "params.yaml"
+SHOW_GRAPH = False
+SHOW_CONV_STAT = True
+SHOW_BOX_STAT = True
 
 # Genetic Algorithm constants:
 POPULATION_SIZE = 100
 P_CROSSOVER = 0.9  # probability for crossover
 P_MUTATION = 0.1   # probability for mutating an individual
-RUNS = 3
+RUNS = 10
 MAX_GENERATIONS = 100
 HALL_OF_FAME_SIZE = 5
 MAX_COLORS = 10
@@ -94,7 +97,44 @@ toolbox.register("mate", tools.cxTwoPoint)
 #toolbox.register("mutate", mutateConflictNodes, low=0, up=MAX_COLORS - 1, indpb=1.0/len(gcp))
 toolbox.register("mutate", mutateSwitchConflictNodes, indpb=1.0/len(gcp))
 
-def printResult(hof, logbooks):
+def showConv(logbooks, runs):
+    # extract statistics:
+    minAvg = numpy.array(logbooks[0].select("min"))
+    meanAvg = numpy.array(logbooks[0].select("avg"))
+    maxAvg = numpy.array(logbooks[0].select("max"))
+    for i in range(1, runs):
+        minAvg = minAvg + numpy.array(logbooks[i].select("min"))
+        meanAvg = meanAvg + numpy.array(logbooks[i].select("avg"))
+        maxAvg = maxAvg + numpy.array(logbooks[i].select("max"))
+    minFitnessValues = minAvg / runs
+    meanFitnessValues = meanAvg / runs
+    maxFitnessValues = maxAvg / runs
+
+    plt.figure(1)
+    sns.set_style("whitegrid")
+    x = numpy.arange(0, MAX_GENERATIONS + 1)
+    y = [minFitnessValues, meanFitnessValues, maxFitnessValues]
+    plt.xscale('log')
+    plt.plot(x,y[1],color='C0')
+    plt.fill_between(x,y[0],y[2], color='C0',alpha=0.4)
+    plt.axhline(minFitnessValues[-1], color="black", linestyle="--")
+    plt.xlabel('Pocet evaluaci')
+    plt.ylabel('Fitness')
+    plt.title('Konvergencni krivka')
+
+def showBox(logbooks, runs):
+    lastEval = [logbooks[0].select("avg")[-1]]
+    for i in range(1, runs):
+        lastEval.append(logbooks[i].select("avg")[-1])
+
+    plt.figure(2)
+    x1 = lastEval
+    plt.boxplot([x1], labels=['x1'], notch=True)
+    plt.xlabel('Fitness')
+    plt.ylabel('Outputs')
+    plt.title('Boxplot')
+
+def printResult(hof, logbooks, runs):
     # print info for best solution found:
     best = hof.items[0]
     print("-- Best Individual = ", best)
@@ -104,25 +144,17 @@ def printResult(hof, logbooks):
     print("Number of violations = ", gcp.getViolationsCount(best))
     print("Cost = ", gcp.getCost(best))
 
-    # plot best solution:
-    plt.figure(1)
-    gcp.plotGraph(best)
-
-    # extract statistics:
-    minFitnessValues, meanFitnessValues, maxFitnessValues = logbooks[0].select("min", "avg", "max")
-
-    print("minFit: ")
-    print(minFitnessValues)
-
     # plot statistics:
-    plt.figure(2)
-    sns.set_style("whitegrid")
-    plt.plot(minFitnessValues, color='red')
-    plt.plot(meanFitnessValues, color='green')
-    plt.plot(maxFitnessValues, color='blue')
-    plt.xlabel('Generation')
-    plt.ylabel('Min / Average Fitness')
-    plt.title('Min and Average fitness over Generations')
+    if SHOW_CONV_STAT:
+        showConv(logbooks, runs)
+             
+    if SHOW_BOX_STAT:
+        showBox(logbooks, runs)
+
+    # plot best solution:
+    if SHOW_GRAPH:
+        plt.figure(3)
+        gcp.plotGraph(best)
 
     plt.show()
 
@@ -141,7 +173,7 @@ def main():
     logbooks = elitism.eaSimpleWithElitism(POPULATION_SIZE, toolbox, cxpb=P_CROSSOVER, mutpb=P_MUTATION, runs=RUNS,
                                               ngen=MAX_GENERATIONS, stats=stats, halloffame=hof, verbose=False)
 
-    printResult(hof, logbooks)
+    printResult(hof, logbooks, RUNS)
 
 
 if __name__ == "__main__":
