@@ -11,7 +11,7 @@ def eaSimpleWithElitism(popsize, toolbox, cxpb, mutpb, runs, ngen, stats=None,
 
     logbooks = []
 
-    for _ in range(0, runs):
+    for run in range(0, runs):
 
         # create initial population (generation 0):
         population = toolbox.populationCreator(n=popsize)
@@ -25,11 +25,11 @@ def eaSimpleWithElitism(popsize, toolbox, cxpb, mutpb, runs, ngen, stats=None,
         for ind, fit in zip(invalid_ind, fitnesses):
             ind.fitness.values = fit
 
-        if halloffame is None:
+        if halloffame[run] is None:
             raise ValueError("halloffame parameter must not be empty!")
 
-        halloffame.update(population)
-        hof_size = len(halloffame.items) if halloffame.items else 0
+        halloffame[run].update(population)
+        hof_size = len(halloffame[run].items) if halloffame[run].items else 0
 
         record = stats.compile(population) if stats else {}
         logbook.record(gen=0, nevals=len(invalid_ind), **record)
@@ -65,10 +65,10 @@ def eaSimpleWithElitism(popsize, toolbox, cxpb, mutpb, runs, ngen, stats=None,
                 ind.fitness.values = fit
 
             # add the best back to population:
-            offspring.extend(halloffame.items)
+            offspring.extend(halloffame[run].items)
 
             # Update the hall of fame with the generated individuals
-            halloffame.update(offspring)
+            halloffame[run].update(offspring)
 
             # Replace the current population by the offspring
             population[:] = offspring

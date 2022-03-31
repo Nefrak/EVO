@@ -134,12 +134,15 @@ def showBox(logbooks, runs):
     plt.ylabel('Outputs')
     plt.title('Boxplot')
 
-def printResult(hof, logbooks, runs):
+def printResult(hofs, logbooks, runs):
     # print info for best solution found:
-    best = hof.items[0]
+    best = hofs[0].items[0]
+    for hof in hofs:
+        if best.fitness.values[0] < hof.items[0].fitness.values[0]:
+            best = hof.items[0]
+
     print("-- Best Individual = ", best)
     print("-- Best Fitness = ", best.fitness.values[0])
-    print()
     print("number of colors = ", gcp.getNumberOfColors(best))
     print("Number of violations = ", gcp.getViolationsCount(best))
     print("Cost = ", gcp.getCost(best))
@@ -167,13 +170,15 @@ def main():
     stats.register("max", numpy.max)
 
     # define the hall-of-fame object:
-    hof = tools.HallOfFame(HALL_OF_FAME_SIZE)
+    hofs = []
+    for _ in range(RUNS):
+        hofs.append(tools.HallOfFame(HALL_OF_FAME_SIZE))
 
     # perform the Genetic Algorithm flow with elitism:
     logbooks = elitism.eaSimpleWithElitism(POPULATION_SIZE, toolbox, cxpb=P_CROSSOVER, mutpb=P_MUTATION, runs=RUNS,
-                                              ngen=MAX_GENERATIONS, stats=stats, halloffame=hof, verbose=False)
+                                              ngen=MAX_GENERATIONS, stats=stats, halloffame=hofs, verbose=False)
 
-    printResult(hof, logbooks, RUNS)
+    printResult(hofs, logbooks, RUNS)
 
 
 if __name__ == "__main__":
