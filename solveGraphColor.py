@@ -22,7 +22,9 @@ SHOW_BOX_STAT = True
 # Genetic Algorithm constants:
 POPULATION_SIZE = 100
 P_CROSSOVER = 0.9  # probability for crossover
-P_MUTATION = 0.1   # probability for mutating an individual
+P_MUTATION = 0.4   # probability for mutating an individual
+P_M_CONFLICT = 0.4  # probability for changing conflicted nodes in all mutations
+P_M_SWITCH = 0.5    # probability for performing switch in all mutations
 RUNS = 10
 MAX_GENERATIONS = 100
 HALL_OF_FAME_SIZE = 5
@@ -59,6 +61,15 @@ def getCost(individual):
     return gcp.getCost(individual),  # return a tuple
 
 #custom genetic functions
+def allMutations(individual, mutateSwitchChance, mutateConflictChance, indpb):
+    prob = random.random()
+    if prob < indpb:
+        if prob < mutateSwitchChance:
+            individual = mutateConflictNodes(individual, 0, MAX_COLORS - 1, indpb)
+        if prob < mutateConflictChance:
+            individual = mutateSwitchConflictNodes(individual, indpb)
+    return individual
+
 def mutateConflictNodes(individual, low, up, indpb):
     for index in range(len(individual)):
         if gcp.isInViolation(index, individual) != -1 and random.random() < indpb:
@@ -75,12 +86,16 @@ def mutateSwitchConflictNodes(individual, indpb):
     return individual
 
 def crossNoConflict(ind1, ind2):
+    newind1 = ind1.copy()
+    newind2 = ind2.copy()
     for index in range(len(ind1)):
         if gcp.isInViolation(index, ind1) != -1:
             ind1[index] = ind2[index]
+            ind2[index] = newind1[index]
     for index in range(len(ind2)):
         if gcp.isInViolation(index, ind2) != -1:
             ind2[index] = ind1[index]
+            ind1[index] = newind2[index]
     return (ind1, ind2)
 
 toolbox.register("evaluate", getCost)
@@ -93,9 +108,10 @@ toolbox.register("select", tools.selTournament, tournsize=2)
 toolbox.register("mate", tools.cxTwoPoint)
 #toolbox.register("mate", crossNoConflict)
 
+toolbox.register("mutate", allMutations, mutateSwitchChance=P_M_SWITCH, mutateConflictChance=P_M_CONFLICT, indpb=1.0/len(gcp))
 #toolbox.register("mutate", tools.mutUniformInt, low=0, up=MAX_COLORS - 1, indpb=1.0/len(gcp))
 #toolbox.register("mutate", mutateConflictNodes, low=0, up=MAX_COLORS - 1, indpb=1.0/len(gcp))
-toolbox.register("mutate", mutateSwitchConflictNodes, indpb=1.0/len(gcp))
+#toolbox.register("mutate", mutateSwitchConflictNodes, indpb=1.0/len(gcp))
 
 def showConv(logbooks, runs):
     # extract statistics:
@@ -125,11 +141,11 @@ def showConv(logbooks, runs):
 def showBox(logbooks, runs):
     lastEval = [logbooks[0].select("avg")[-1]]
     for i in range(1, runs):
-        lastEval.append(logbooks[i].select("avg")[-1])
+       lastEval.append(logbooks[i].select("avg")[-1])
 
     plt.figure(2)
     x1 = lastEval
-    plt.boxplot([x1], labels=['x1'], notch=True)
+    plt.boxplot(x1, labels=['x1'], notch=True)
     plt.xlabel('Fitness')
     plt.ylabel('Outputs')
     plt.title('Boxplot')
