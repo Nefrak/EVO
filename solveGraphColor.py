@@ -14,17 +14,18 @@ import graphs
 
 # problem constants:
 HARD_CONSTRAINT_PENALTY = 10  # the penalty factor for a hard-constraint violation
-FILE_PATH = "params.yaml"
-SHOW_GRAPH = False
+FILE_PATH = "graph.yaml"
+SHOW_GRAPH = True
 SHOW_CONV_STAT = True
 SHOW_BOX_STAT = True
 
 # Genetic Algorithm constants:
 POPULATION_SIZE = 100
-P_CROSSOVER = 0.9  # probability for crossover
-P_MUTATION = 0.4   # probability for mutating an individual
-P_M_CONFLICT = 0.4  # probability for changing conflicted nodes in all mutations
-P_M_SWITCH = 0.5    # probability for performing switch in all mutations
+P_CROSSOVER = 0.7  # probability for crossover
+P_MUTATION = 0.5   # probability for mutating an individual
+P_M_RANDOM = 0.03    # probability for mutating node to random value
+P_M_SWITCH = 0.40    # probability for performing switch in all mutations
+P_M_CONFLICT = 0.20  # probability for changing conflicted nodes in all mutations
 RUNS = 10
 MAX_GENERATIONS = 100
 HALL_OF_FAME_SIZE = 5
@@ -37,8 +38,8 @@ random.seed(RANDOM_SEED)
 toolbox = base.Toolbox()
 
 # create the graph coloring problem instance to be used:
-#gcp = graphs.GraphColoringProblem("", nx.petersen_graph(), HARD_CONSTRAINT_PENALTY)
-gcp = graphs.GraphColoringProblem("", nx.mycielski_graph(5), HARD_CONSTRAINT_PENALTY)
+gcp = graphs.GraphColoringProblem("", nx.petersen_graph(), HARD_CONSTRAINT_PENALTY)
+#gcp = graphs.GraphColoringProblem(FILE_PATH, nx.mycielski_graph(5), HARD_CONSTRAINT_PENALTY)
 #gcp = graphs.GraphColoringProblem(FILE_PATH, None, HARD_CONSTRAINT_PENALTY)
 
 # define a single objective, maximizing fitness strategy:
@@ -60,31 +61,39 @@ toolbox.register("populationCreator", tools.initRepeat, list, toolbox.individual
 def getCost(individual):
     return gcp.getCost(individual),  # return a tuple
 
-#custom genetic functions
-def allMutations(individual, mutateSwitchChance, mutateConflictChance, indpb):
+# do all mutations with probability
+def allMutations(individual, mutateSwitchChance, mutateConflictChance,  mutateRandomChance):
     prob = random.random()
-    if prob < indpb:
+    for index in range(len(individual)):
+        if prob < mutateRandomChance:
+            individual = mutateRandomNodes(index, individual, 0, MAX_COLORS - 1)
         if prob < mutateSwitchChance:
-            individual = mutateConflictNodes(individual, 0, MAX_COLORS - 1, indpb)
+            individual = mutateConflictNodes(index, individual, 0, MAX_COLORS - 1)
         if prob < mutateConflictChance:
-            individual = mutateSwitchConflictNodes(individual, indpb)
+            individual = mutateSwitchConflictNodes(index, individual)
     return individual
 
-def mutateConflictNodes(individual, low, up, indpb):
-    for index in range(len(individual)):
-        if gcp.isInViolation(index, individual) != -1 and random.random() < indpb:
-            individual[index] = random.randrange(low, up + 1)
+# mutating random nodes
+def mutateRandomNodes(index, individual, low, up):
+    individual[index] = random.randrange(low, up + 1)
     return individual
 
-def mutateSwitchConflictNodes(individual, indpb):
-    for index in range(len(individual)):
-        confIndex = gcp.isInViolation(index, individual)
-        if confIndex != -1 and random.random() < indpb:
-            savedColor = individual[index]
-            individual[index] = individual[confIndex]
-            individual[confIndex] = savedColor
+# mutating nodes with conflicts
+def mutateConflictNodes(index, individual, low, up):
+    if gcp.isInViolation(index, individual) != -1:
+        individual[index] = random.randrange(low, up + 1)
     return individual
 
+# mutating node by switching it with another conflict node
+def mutateSwitchConflictNodes(index, individual):
+    confIndex = gcp.isInViolation(index, individual)
+    if confIndex != -1:
+        savedColor = individual[index]
+        individual[index] = individual[confIndex]
+        individual[confIndex] = savedColor
+    return individual
+
+# cross nodes so that nodes with conflict are replaced from other parent
 def crossNoConflict(ind1, ind2):
     newind1 = ind1.copy()
     newind2 = ind2.copy()
@@ -108,11 +117,9 @@ toolbox.register("select", tools.selTournament, tournsize=2)
 toolbox.register("mate", tools.cxTwoPoint)
 #toolbox.register("mate", crossNoConflict)
 
-toolbox.register("mutate", allMutations, mutateSwitchChance=P_M_SWITCH, mutateConflictChance=P_M_CONFLICT, indpb=1.0/len(gcp))
-#toolbox.register("mutate", tools.mutUniformInt, low=0, up=MAX_COLORS - 1, indpb=1.0/len(gcp))
-#toolbox.register("mutate", mutateConflictNodes, low=0, up=MAX_COLORS - 1, indpb=1.0/len(gcp))
-#toolbox.register("mutate", mutateSwitchConflictNodes, indpb=1.0/len(gcp))
+toolbox.register("mutate", allMutations, mutateSwitchChance=P_M_SWITCH, mutateConflictChance=P_M_CONFLICT, mutateRandomChance=P_M_RANDOM)
 
+# show statistics
 def showConv(logbooks, runs):
     # extract statistics:
     minAvg = numpy.array(logbooks[0].select("min"))
@@ -138,23 +145,26 @@ def showConv(logbooks, runs):
     plt.ylabel('Fitness')
     plt.title('Konvergencni krivka')
 
+# show boxplot
 def showBox(logbooks, runs):
     lastEval = [logbooks[0].select("avg")[-1]]
+    lastEvalMin = [logbooks[0].select("min")[-1]]
     for i in range(1, runs):
        lastEval.append(logbooks[i].select("avg")[-1])
+       lastEvalMin.append(logbooks[i].select("min")[-1])
 
     plt.figure(2)
-    x1 = lastEval
-    plt.boxplot(x1, labels=['x1'], notch=True)
+    plt.boxplot([lastEval, lastEvalMin], labels=['avg', 'min'])
     plt.xlabel('Fitness')
     plt.ylabel('Outputs')
     plt.title('Boxplot')
 
+# get results
 def printResult(hofs, logbooks, runs):
     # print info for best solution found:
     best = hofs[0].items[0]
     for hof in hofs:
-        if best.fitness.values[0] < hof.items[0].fitness.values[0]:
+        if best.fitness.values[0] > hof.items[0].fitness.values[0]:
             best = hof.items[0]
 
     print("-- Best Individual = ", best)
