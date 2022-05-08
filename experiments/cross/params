@@ -1,0 +1,16 @@
+# Genetic Algorithm constants:
+POPULATION_SIZE = 100
+P_CROSSOVER = 0.8  
+P_MUTATION = 0.4   
+P_M_RANDOM = 0.05    
+P_M_SWITCH = 0.2    
+P_M_CONFLICT = 0.1  
+RUNS = 30
+MAX_GENERATIONS = 1000
+HALL_OF_FAME_SIZE = 5
+MAX_COLORS = 10
+
+# set the random seed:
+RANDOM_SEED = 42
+
+#for experiment with cross metod comment or uncomment toolbox.register("mate", ...) which specifies used mate function

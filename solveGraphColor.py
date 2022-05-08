@@ -14,20 +14,20 @@ import graphs
 
 # problem constants:
 HARD_CONSTRAINT_PENALTY = 10  # the penalty factor for a hard-constraint violation
-FILE_PATH = "graph.yaml"
+FILE_PATH = ""
 SHOW_GRAPH = True
 SHOW_CONV_STAT = True
 SHOW_BOX_STAT = True
 
 # Genetic Algorithm constants:
 POPULATION_SIZE = 100
-P_CROSSOVER = 0.7  # probability for crossover
-P_MUTATION = 0.5   # probability for mutating an individual
-P_M_RANDOM = 0.03    # probability for mutating node to random value
-P_M_SWITCH = 0.40    # probability for performing switch in all mutations
-P_M_CONFLICT = 0.20  # probability for changing conflicted nodes in all mutations
-RUNS = 10
-MAX_GENERATIONS = 100
+P_CROSSOVER = 0.8  
+P_MUTATION = 0.4   
+P_M_RANDOM = 0.05    
+P_M_SWITCH = 0.2    
+P_M_CONFLICT = 0.1  
+RUNS = 30
+MAX_GENERATIONS = 1000
 HALL_OF_FAME_SIZE = 5
 MAX_COLORS = 10
 
@@ -35,12 +35,13 @@ MAX_COLORS = 10
 RANDOM_SEED = 42
 random.seed(RANDOM_SEED)
 
+#results
+saveFile = 'result2'
+
 toolbox = base.Toolbox()
 
 # create the graph coloring problem instance to be used:
-gcp = graphs.GraphColoringProblem("", nx.petersen_graph(), HARD_CONSTRAINT_PENALTY)
-#gcp = graphs.GraphColoringProblem(FILE_PATH, nx.mycielski_graph(5), HARD_CONSTRAINT_PENALTY)
-#gcp = graphs.GraphColoringProblem(FILE_PATH, None, HARD_CONSTRAINT_PENALTY)
+gcp = graphs.GraphColoringProblem(FILE_PATH, nx.mycielski_graph(5), HARD_CONSTRAINT_PENALTY)
 
 # define a single objective, maximizing fitness strategy:
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
@@ -63,8 +64,8 @@ def getCost(individual):
 
 # do all mutations with probability
 def allMutations(individual, mutateSwitchChance, mutateConflictChance,  mutateRandomChance):
-    prob = random.random()
     for index in range(len(individual)):
+        prob = random.random()
         if prob < mutateRandomChance:
             individual = mutateRandomNodes(index, individual, 0, MAX_COLORS - 1)
         if prob < mutateSwitchChance:
@@ -152,6 +153,8 @@ def showBox(logbooks, runs):
     for i in range(1, runs):
        lastEval.append(logbooks[i].select("avg")[-1])
        lastEvalMin.append(logbooks[i].select("min")[-1])
+
+    numpy.save(saveFile, numpy.array(lastEvalMin))
 
     plt.figure(2)
     plt.boxplot([lastEval, lastEvalMin], labels=['avg', 'min'])

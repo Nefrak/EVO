@@ -1,0 +1,14 @@
+# Genetic Algorithm constants:
+POPULATION_SIZE = 100
+P_CROSSOVER = 0.8  # probability for crossover
+P_MUTATION = 0.5   # probability for mutating an individual
+P_M_RANDOM = 0.0    # probability for mutating node to random value
+P_M_SWITCH = 0.0    # probability for performing switch in all mutations
+P_M_CONFLICT = 0.8  # probability for changing conflicted nodes in all mutations
+RUNS = 30
+MAX_GENERATIONS = 1000
+HALL_OF_FAME_SIZE = 5
+MAX_COLORS = 10
+
+# set the random seed:
+RANDOM_SEED = 42

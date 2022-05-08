@@ -14,6 +14,7 @@ Pro zvolený problém barvení grafu proveďte sady experimentů využívající
 - seaborn
 - networkx
 - yaml
+- scipy.stats (pro statistický script)
 
 ## Spuštění
 python solveGraphColor.py
